@@ -938,9 +938,10 @@
         canvas.addEventListener("mouseleave", () => this.tip.style.display = "none");
       }
 
-      setData(series, labels) {
+      setData(series, labels, emptyMessage = "暂无足够真实数据") {
         this.data = series;
         this.labels = labels;
+        this.emptyMessage = emptyMessage;
         this.draw();
       }
 
@@ -954,7 +955,7 @@
           x.fillStyle = "#9aa4aa";
           x.font = "13px Microsoft YaHei";
           x.textAlign = "center";
-          x.fillText("暂无足够真实数据", W / 2, H / 2);
+          x.fillText(this.emptyMessage || "暂无足够真实数据", W / 2, H / 2);
           return;
         }
         const vals = numericSeries.flatMap(s => s.values).filter(v => Number.isFinite(v));
@@ -1036,7 +1037,9 @@
       }
       const all = {};
       document.getElementById("priceDesc").textContent =
-        "申万真实行情采样点，区间起点归一为 100";
+        state.years === 20
+          ? "申万 SW2021 行业指数暂无 20 年完整历史；下方 1-4 市场模块仍可查看 20 年真实数据"
+          : "申万真实行情采样点，区间起点归一为 100";
       ["price","profit","pe"].forEach(kind => {
         all[kind] = picks.map(s => ({
           name: s.name,
@@ -1047,9 +1050,12 @@
         legend.innerHTML = picks.map((s,i) => `<span class="legend-item" style="--legend:${seriesColor(i)}">${s.name}</span>`).join("");
       });
       const labels = all.price.find(s => s.labels.length)?.labels || [];
-      charts[0].setData(all.price, labels);
-      charts[1].setData(all.profit, labels);
-      charts[2].setData(all.pe, labels);
+      const industryEmptyMessage = state.years === 20
+        ? "申万行业指数暂无20年历史"
+        : "暂无足够真实数据";
+      charts[0].setData(all.price, labels, industryEmptyMessage);
+      charts[1].setData(all.profit, labels, industryEmptyMessage);
+      charts[2].setData(all.pe, labels, industryEmptyMessage);
 
       const metricRows = picks.map((pick, index) => {
         const latest = latestData(pick.name);
