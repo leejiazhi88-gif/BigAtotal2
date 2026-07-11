@@ -16,6 +16,7 @@ PERIOD_STARTS = {
     "1": "20250618",
     "3": "20230619",
     "5": "20210618",
+    "10": "20160620",
     "20": "20060619",
 }
 
@@ -96,6 +97,7 @@ def sample_dates(token):
         "1": pick(PERIOD_STARTS["1"], 13),
         "3": pick(PERIOD_STARTS["3"], 25),
         "5": pick(PERIOD_STARTS["5"], 31),
+        "10": pick(PERIOD_STARTS["10"], 49),
         "20": pick(PERIOD_STARTS["20"], 72),
     }
     union = sorted({date for dates in by_period.values() for date in dates})

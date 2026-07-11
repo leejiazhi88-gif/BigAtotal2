@@ -16,6 +16,7 @@ PERIODS = {
     "1": "20250618",
     "3": "20230619",
     "5": "20210618",
+    "10": "20160620",
     "20": "20060619",
 }
 
@@ -121,7 +122,7 @@ def build_history(rows):
         row["profit"] = implied_profit(row)
     latest = rows[-1] if rows else {}
     periods = {}
-    max_points = {"1": 64, "3": 72, "5": 72, "20": 96}
+    max_points = {"1": 64, "3": 72, "5": 72, "10": 84, "20": 96}
     for years, start in PERIODS.items():
         sample = sample_rows(rows, start, max_points[years])
         if not sample:
