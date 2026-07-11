@@ -1,0 +1,1111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>申万赛道研究总览</title>
+  <style>
+    :root {
+      --bg: #f2f5f8;
+      --panel: rgba(255, 255, 255, 0.94);
+      --ink: #14212b;
+      --muted: #6d7983;
+      --line: #dfe5e9;
+      --red: #c94b42;
+      --red-soft: #f9e9e6;
+      --blue: #356f8c;
+      --gold: #b28a43;
+      --green: #497768;
+      --shadow: 0 14px 40px rgba(25, 43, 54, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 85% 5%, rgba(183, 207, 218, .35), transparent 28%),
+        linear-gradient(180deg, #f8fafb 0, var(--bg) 440px);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .shell {
+      width: min(1500px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 30px 0 54px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin-bottom: 8px;
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .18em;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Songti SC", serif;
+      font-size: clamp(31px, 4vw, 51px);
+      font-weight: 500;
+      letter-spacing: -.035em;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 11px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .asof {
+      min-width: 188px;
+      padding: 13px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.62);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+      text-align: right;
+    }
+
+    .asof strong { display: block; color: var(--ink); font-size: 14px; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 286px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid rgba(214, 222, 227, .9);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    aside {
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: hidden;
+    }
+
+    .filter-head {
+      padding: 19px 18px 15px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .filter-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 13px;
+    }
+
+    .filter-title h2, .overview-head h2 { margin: 0; font-size: 16px; }
+    .clear {
+      padding: 5px 10px;
+      border: 1px solid #d9dfe3;
+      border-radius: 7px;
+      background: #eef1f3;
+      color: #7e898f;
+      font-size: 12px;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+    .clear.active {
+      border-color: #dca39d;
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .search {
+      width: 100%;
+      padding: 10px 12px 10px 35px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      outline: none;
+      background:
+        white
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23808b93' stroke-width='1.6'%3E%3Ccircle cx='7' cy='7' r='4.8'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E")
+        no-repeat 11px center;
+      font-size: 13px;
+    }
+
+    .filter-list {
+      height: calc(100vh - 198px);
+      min-height: 480px;
+      overflow: auto;
+      padding: 9px 10px 18px;
+      scrollbar-width: thin;
+    }
+
+    .sector { margin: 2px 0; }
+    .sector-row {
+      display: grid;
+      grid-template-columns: 22px 22px 1fr auto;
+      align-items: center;
+      min-height: 39px;
+      padding: 0 7px;
+      border-radius: 8px;
+    }
+    .sector-row:hover { background: #f5f7f8; }
+
+    .toggle {
+      width: 22px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #8b969e;
+      cursor: pointer;
+      transition: transform .18s;
+    }
+    .sector.open .toggle { transform: rotate(90deg); }
+
+    .check {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      border: 1.5px solid #b7c1c7;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+    .check:checked {
+      border-color: var(--red);
+      background: var(--red);
+      box-shadow: inset 0 0 0 3px white;
+    }
+
+    .sector-name { font-size: 13px; cursor: pointer; }
+    .child-count {
+      color: #8b969e;
+      font-family: Georgia, serif;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .children { display: none; padding: 2px 0 5px 51px; }
+    .sector.open .children { display: block; }
+    .child {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 9px;
+      min-height: 32px;
+      color: #56636c;
+      font-size: 12px;
+    }
+    .child-mv {
+      color: #9ba4aa;
+      font-family: Georgia, serif;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .child-all {
+      margin-bottom: 3px;
+      padding-bottom: 3px;
+      border-bottom: 1px dashed #e3e8eb;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    main { min-width: 0; }
+
+    .overview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 17px 20px;
+      margin-bottom: 12px;
+    }
+
+    .scope {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .periods {
+      display: flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #f4f6f7;
+    }
+
+    .period {
+      min-width: 48px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .period.active {
+      background: white;
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(31,46,55,.1);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric { padding: 15px 17px; }
+    .metric-label { color: var(--muted); font-size: 11px; }
+    .metric-value {
+      margin-top: 8px;
+      font-family: Georgia, serif;
+      letter-spacing: -.02em;
+    }
+    .metric-list {
+      display: grid;
+      max-height: 184px;
+      overflow: auto;
+      scrollbar-width: thin;
+    }
+    .metric-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 10px;
+      min-height: 31px;
+      padding: 6px 0;
+      border-bottom: 1px solid #edf0f2;
+    }
+    .metric-row:last-child { border-bottom: 0; }
+    .metric-name {
+      overflow: hidden;
+      color: var(--muted);
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .metric-number {
+      font-size: 17px;
+      white-space: nowrap;
+    }
+    .metric-note { margin-left: 6px; font-family: inherit; font-size: 11px; }
+    .metric-empty {
+      padding: 12px 0 6px;
+      color: #9aa4aa;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 12px;
+    }
+    .up { color: var(--red); }
+    .down { color: var(--green); }
+
+    .charts {
+      display: grid;
+      gap: 12px;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .module-card {
+      padding: 18px 20px 16px;
+    }
+
+    .module-head {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 13px;
+    }
+
+    .module-index {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--red-soft);
+      color: var(--red);
+      font-family: Georgia, serif;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .module-title { font-size: 15px; font-weight: 800; }
+    .module-desc {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .module-kpis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+
+    .module-kpi {
+      min-height: 64px;
+      padding: 10px 11px;
+      border: 1px solid #edf1f3;
+      border-radius: 11px;
+      background: #fbfcfd;
+    }
+
+    .module-kpi-label {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .module-kpi-value {
+      margin-top: 7px;
+      font-family: Georgia, serif;
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .module-kpi-note {
+      margin-left: 5px;
+      color: #9aa4aa;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 10px;
+    }
+
+    .module-chart {
+      height: 170px;
+    }
+
+    .chart-card { padding: 18px 20px 14px; }
+    .chart-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .chart-title { font-size: 14px; font-weight: 800; }
+    .chart-desc { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .legend-item::before {
+      display: inline-block;
+      width: 14px;
+      height: 2px;
+      margin: 0 5px 3px 0;
+      background: var(--legend);
+      content: "";
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 230px;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    .tip {
+      position: absolute;
+      z-index: 3;
+      display: none;
+      min-width: 138px;
+      padding: 9px 11px;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      background: rgba(21, 32, 40, .92);
+      color: white;
+      pointer-events: none;
+      box-shadow: 0 8px 22px rgba(0,0,0,.16);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+    .tip strong { display: block; margin-bottom: 2px; }
+    .tip-row { display: flex; justify-content: space-between; gap: 18px; }
+
+    .footnote {
+      margin-top: 11px;
+      color: #8c969d;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .shell { width: min(100% - 24px, 760px); }
+      header { display: block; }
+      .asof { margin-top: 14px; text-align: left; }
+      .workspace { grid-template-columns: 1fr; }
+      aside { position: static; max-height: none; }
+      .filter-list { height: 280px; min-height: 0; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .modules { grid-template-columns: 1fr; }
+      .overview-head { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">SECTOR RESEARCH / SW INDUSTRIES</div>
+        <h1>申万赛道研究总览</h1>
+        <p class="subtitle">从指数价格、滚动利润与估值三个维度观察行业周期。一级行业代表行业全貌，展开后可进一步聚焦具体二级赛道。</p>
+      </div>
+      <div class="asof">数据状态<strong>全页真实行情数据</strong>申万/市场：2026-06-18</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel">
+        <div class="filter-head">
+          <div class="filter-title">
+            <h2>行业筛选</h2>
+            <button class="clear" id="selectAllBtn">全选</button>
+          </div>
+          <input class="search" id="search" placeholder="搜索一级或二级行业">
+        </div>
+        <div class="filter-list" id="filterList"></div>
+      </aside>
+
+      <main>
+        <section class="overview-head panel">
+          <div>
+            <h2>总览</h2>
+            <div class="scope" id="scopeText">当前：有色金属（申万一级）</div>
+          </div>
+          <div class="periods" aria-label="时间跨度">
+            <button class="period active" data-years="1">1年</button>
+            <button class="period" data-years="3">3年</button>
+            <button class="period" data-years="5">5年</button>
+            <button class="period" data-years="20">20年</button>
+          </div>
+        </section>
+
+        <section class="summary-grid">
+          <div class="metric panel"><div class="metric-label">指数点位</div><div class="metric-value" id="mPrice">—</div></div>
+          <div class="metric panel"><div class="metric-label">区间涨跌</div><div class="metric-value" id="mReturn">—</div></div>
+          <div class="metric panel"><div class="metric-label">滚动年利润</div><div class="metric-value" id="mProfit">—</div></div>
+          <div class="metric panel"><div class="metric-label">PE / 历史分位</div><div class="metric-value" id="mPe">—</div></div>
+        </section>
+
+        <section class="charts">
+          <article class="chart-card panel">
+            <div class="chart-top">
+              <div><div class="chart-title">指数价格走势</div><div class="chart-desc" id="priceDesc">申万真实行情采样点，区间起点归一为 100</div></div>
+              <div class="legend" id="legend-price"></div>
+            </div>
+            <div class="chart-wrap"><canvas id="priceChart"></canvas><div class="tip"></div></div>
+          </article>
+
+          <article class="chart-card panel">
+            <div class="chart-top">
+              <div><div class="chart-title">持续滚动年利润走势</div><div class="chart-desc">由申万 total_mv / PE 推导的行业隐含 TTM 利润，区间起点归一为 100</div></div>
+              <div class="legend" id="legend-profit"></div>
+            </div>
+            <div class="chart-wrap"><canvas id="profitChart"></canvas><div class="tip"></div></div>
+          </article>
+
+          <article class="chart-card panel">
+            <div class="chart-top">
+              <div><div class="chart-title">市盈率走势</div><div class="chart-desc">行业整体法 PE（TTM），亏损成分股按统一口径处理</div></div>
+              <div class="legend" id="legend-pe"></div>
+            </div>
+            <div class="chart-wrap"><canvas id="peChart"></canvas><div class="tip"></div></div>
+          </article>
+        </section>
+        <section class="modules" id="marketModules">
+          <article class="module-card panel">
+            <div class="module-head">
+              <div class="module-index">1</div>
+              <div>
+                <div class="module-title">估值</div>
+                <div class="module-desc">全市场 PE 中位数、PB 中位数、高估值股票占比，以及估值所处历史位置。</div>
+              </div>
+            </div>
+            <div class="module-kpis" id="moduleKpi1"></div>
+            <div class="chart-top">
+              <div><div class="chart-title">估值走势</div><div class="chart-desc">真实 A 股日度基础指标按采样交易日聚合，走势按区间起点=100归一</div></div>
+              <div class="legend" id="legend-module1"></div>
+            </div>
+            <div class="chart-wrap module-chart"><canvas id="moduleChart1"></canvas><div class="tip"></div></div>
+          </article>
+
+          <article class="module-card panel">
+            <div class="module-head">
+              <div class="module-index">2</div>
+              <div>
+                <div class="module-title">情绪·散户</div>
+                <div class="module-desc">两市成交额、换手率、融资余额、融资余额/流通市值、涨停数量等交易热度指标。</div>
+              </div>
+            </div>
+            <div class="module-kpis" id="moduleKpi2"></div>
+            <div class="chart-top">
+              <div><div class="chart-title">交易热度走势</div><div class="chart-desc">成交额、换手率和融资余额来自真实交易与两融数据，走势按区间起点=100归一</div></div>
+              <div class="legend" id="legend-module2"></div>
+            </div>
+            <div class="chart-wrap module-chart"><canvas id="moduleChart2"></canvas><div class="tip"></div></div>
+          </article>
+
+          <article class="module-card panel">
+            <div class="module-head">
+              <div class="module-index">3</div>
+              <div>
+                <div class="module-title">情绪·大资金</div>
+                <div class="module-desc">北向资金、大宗交易、ETF 份额变化、机构仓位等资金行为指标。</div>
+              </div>
+            </div>
+            <div class="module-kpis" id="moduleKpi3"></div>
+            <div class="chart-top">
+              <div><div class="chart-title">大资金线索</div><div class="chart-desc">已接入北向资金与大宗交易；走势按区间起点=100归一</div></div>
+              <div class="legend" id="legend-module3"></div>
+            </div>
+            <div class="chart-wrap module-chart"><canvas id="moduleChart3"></canvas><div class="tip"></div></div>
+          </article>
+
+          <article class="module-card panel">
+            <div class="module-head">
+              <div class="module-index">4</div>
+              <div>
+                <div class="module-title">情绪·官方</div>
+                <div class="module-desc">IPO 融资、再融资、产业资本净减持、政策利率、社融/M2 等官方与制度变量。</div>
+              </div>
+            </div>
+            <div class="module-kpis" id="moduleKpi4"></div>
+            <div class="chart-top">
+              <div><div class="chart-title">官方供给与政策变量</div><div class="chart-desc">已接入 IPO 近 12 个月融资额；走势按区间起点=100归一</div></div>
+              <div class="legend" id="legend-module4"></div>
+            </div>
+            <div class="chart-wrap module-chart"><canvas id="moduleChart4"></canvas><div class="tip"></div></div>
+          </article>
+        </section>
+        <div class="footnote">说明：本页行业分类、指数点位、区间涨跌、PE、市值排序均来自 Tushare 申万 SW2021 行情；滚动年利润为 total_mv / PE 的隐含 TTM 利润。1-4 模块来自 Tushare daily_basic / daily / margin / moneyflow_hsgt / block_trade / new_share。若某指标暂未接入稳定口径，则显示暂无真实数据。</div>
+      </main>
+    </div>
+  </div>
+
+  <script src="sector_real_data.js"></script>
+  <script src="market_modules_data.js"></script>
+  <script>
+    const realData = window.SECTOR_REAL_DATA || null;
+    const marketData = window.MARKET_MODULES_DATA || null;
+    let industries = realData?.industries || {
+      "农林牧渔": ["养殖业","饲料","种植业","渔业","动物保健","农产品加工"],
+      "基础化工": ["化学原料","化学制品","农化制品","塑料","橡胶","化学纤维"],
+      "钢铁": ["普钢","特钢","冶钢原料"],
+      "有色金属": ["贵金属","工业金属","能源金属","小金属","金属新材料"],
+      "电子": ["半导体","消费电子","光学光电子","元件","电子化学品","其他电子"],
+      "家用电器": ["白色家电","黑色家电","厨卫电器","小家电","照明设备","家电零部件"],
+      "食品饮料": ["白酒","啤酒","饮料乳品","调味发酵品","休闲食品","食品加工"],
+      "纺织服饰": ["纺织制造","服装家纺","饰品"],
+      "轻工制造": ["造纸","家居用品","包装印刷","文娱用品"],
+      "医药生物": ["化学制药","中药","生物制品","医药商业","医疗器械","医疗服务"],
+      "公用事业": ["电力","燃气","环境治理"],
+      "交通运输": ["物流","铁路公路","航空机场","航运港口"],
+      "房地产": ["房地产开发","房地产服务"],
+      "商贸零售": ["一般零售","贸易","互联网电商","专业连锁"],
+      "社会服务": ["旅游及景区","酒店餐饮","教育","专业服务","体育"],
+      "银行": ["国有大型银行","股份制银行","城商行","农商行"],
+      "非银金融": ["证券","保险","多元金融"],
+      "综合": ["综合"],
+      "建筑材料": ["水泥","玻璃玻纤","装修建材"],
+      "建筑装饰": ["房屋建设","基础建设","专业工程","装修装饰","工程咨询服务"],
+      "电力设备": ["光伏设备","风电设备","电池","电网设备","电机","其他电源设备"],
+      "机械设备": ["通用设备","专用设备","轨交设备","工程机械","自动化设备"],
+      "国防军工": ["航空装备","航天装备","地面兵装","航海装备","军工电子"],
+      "汽车": ["乘用车","商用车","汽车零部件","汽车服务","摩托车及其他"],
+      "计算机": ["计算机设备","软件开发","IT服务"],
+      "传媒": ["游戏","广告营销","影视院线","数字媒体","出版","电视广播"],
+      "通信": ["通信服务","通信设备"],
+      "煤炭": ["煤炭开采","焦炭"],
+      "石油石化": ["油气开采","炼化及贸易","油服工程"],
+      "环保": ["环境治理","环保设备"],
+      "美容护理": ["化妆品","医疗美容","个护用品"]
+    };
+
+    // 申万行业指数总市值，单位为万元；来源：Tushare sw_daily，交易日 2026-06-18。
+    let marketCaps = {
+      "电子": 2312288562, "银行": 1021026195, "电力设备": 897783690, "机械设备": 717700858,
+      "通信": 645099839, "有色金属": 564175461, "医药生物": 545274023, "非银金融": 542987185,
+      "基础化工": 485471445, "计算机": 429342721, "汽车": 408348774, "公用事业": 379779778,
+      "食品饮料": 355082325, "国防军工": 328202517, "石油石化": 289991030, "交通运输": 282099896,
+      "家用电器": 181566958, "煤炭": 181318190, "建筑装饰": 179276927, "传媒": 143002926,
+      "建筑材料": 136689518, "农林牧渔": 110893235, "房地产": 99413325, "轻工制造": 98258991,
+      "环保": 94711396, "商贸零售": 86988600, "钢铁": 86176741, "纺织服饰": 60209537,
+      "社会服务": 48309390, "美容护理": 23040132, "综合": 18360572,
+
+      "半导体": 1185416491, "元件": 401311875, "消费电子": 419272158, "光学光电子": 159579547,
+      "电子化学品": 89953940, "其他电子": 56754550,
+      "国有大型银行": 639674784, "股份制银行": 238494405, "城商行": 119568078, "农商行": 23288927,
+      "电池": 396024747, "电网设备": 183126492, "光伏设备": 169377071, "其他电源设备": 76247519,
+      "风电设备": 40526607, "电机": 32481253,
+      "通用设备": 259969540, "专用设备": 182822023, "自动化设备": 162155312,
+      "工程机械": 73923914, "轨交设备": 38830070,
+      "通信设备": 539904466, "通信服务": 105195373,
+      "工业金属": 255045514, "小金属": 146688022, "能源金属": 68045738,
+      "金属新材料": 47430744, "贵金属": 46965443,
+      "化学制品": 184179576, "塑料": 86771277, "农化制品": 78892246, "化学原料": 77209418,
+      "化学纤维": 29340157, "橡胶": 12322027,
+      "化学制药": 178762120, "医疗器械": 120646167, "医疗服务": 79085044,
+      "中药": 72667108, "生物制品": 65880344, "医药商业": 28233240,
+      "证券": 307561174, "保险": 178943843, "多元金融": 56482168,
+      "软件开发": 164423705, "IT服务": 136119506, "计算机设备": 128799510,
+      "汽车零部件": 261205969, "乘用车": 96732071, "商用车": 26898258,
+      "摩托车及其他": 17741634, "汽车服务": 5770842,
+      "电力": 353608857, "燃气": 26170921,
+      "白酒": 232246044, "饮料乳品": 40543182, "调味发酵品": 31686113,
+      "食品加工": 21866547, "啤酒": 11367033, "休闲食品": 11918917,
+      "航空装备": 99519644, "军工电子": 118801070, "航海装备": 49354463,
+      "航天装备": 45841965, "地面兵装": 14685375,
+      "炼化及贸易": 257451678, "油服工程": 18423347, "油气开采": 0,
+      "航运港口": 104080151, "铁路公路": 71062427, "物流": 58316042, "航空机场": 48641275,
+      "白色家电": 93529894, "家电零部件": 35883551, "小家电": 19176624,
+      "黑色家电": 16560402, "照明设备": 10603172, "厨卫电器": 4797260,
+      "煤炭开采": 176618161, "焦炭": 4700030,
+      "基础建设": 75858369, "专业工程": 43638171, "房屋建设": 26411787,
+      "工程咨询服务": 21728463, "装修装饰": 11640137,
+      "游戏": 45788044, "广告营销": 28341670, "出版": 24411930, "影视院线": 17775123,
+      "电视广播": 14007690, "数字媒体": 12678469,
+      "玻璃玻纤": 87867796, "装修建材": 26600590, "水泥": 22221133,
+      "养殖业": 44242332, "农产品加工": 26084423, "饲料": 15903622,
+      "种植业": 14562446, "动物保健": 5647561, "渔业": 1534513,
+      "房地产开发": 94814015, "房地产服务": 4599310,
+      "家居用品": 46388267, "包装印刷": 27010523, "造纸": 14838403, "文娱用品": 10021797,
+      "环境治理": 76192241, "环保设备": 18519155,
+      "一般零售": 45542555, "贸易": 13641131, "互联网电商": 11324512, "专业连锁": 4765013,
+      "普钢": 50303203, "特钢": 18160006, "冶钢原料": 17713532,
+      "服装家纺": 31583590, "纺织制造": 18420484, "饰品": 10205463,
+      "专业服务": 22784603, "旅游及景区": 12421981, "教育": 6828518, "酒店餐饮": 5311870, "体育": 0,
+      "化妆品": 11257258, "个护用品": 6701309, "医疗美容": 0,
+      "综合": 18360572
+    };
+
+    if (realData) {
+      marketCaps = Object.fromEntries(
+        Object.entries(realData.metrics).map(([name, metric]) => [name, metric.latest?.totalMv || 0])
+      );
+    }
+
+    const colors = ["#c94b42","#356f8c","#b28a43","#497768","#8a5e8d","#d17d3f"];
+    const state = { years: 1, selections: [{ level: 1, parent: "有色金属", name: "有色金属" }] };
+    const charts = [];
+    const moduleCharts = [];
+    const moduleConfigs = [
+      {
+        id: 1,
+        metrics: [
+          { key: "peMedian", label: "全市场 PE 中位数", format: "x" },
+          { key: "pbMedian", label: "全市场 PB 中位数", format: "x" },
+          { key: "highPeRatio", label: "高估值股票占比", format: "pct" },
+          { key: "peMedian", label: "PE 历史分位", format: "rank" }
+        ],
+        lines: [
+          { key: "peMedian", name: "PE中位数" },
+          { key: "pbMedian", name: "PB中位数" },
+          { key: "highPeRatio", name: "高PE占比" }
+        ]
+      },
+      {
+        id: 2,
+        metrics: [
+          { key: "amountTotal", label: "两市成交额", format: "yi" },
+          { key: "turnoverMedian", label: "换手率中位数", format: "pct" },
+          { key: "marginBalance", label: "融资余额", format: "yi" },
+          { key: "limitUpCount", label: "涨停数量", format: "count" }
+        ],
+        lines: [
+          { key: "amountTotal", name: "成交额" },
+          { key: "marginBalance", name: "融资余额" },
+          { key: "limitUpCount", name: "涨停数" }
+        ]
+      },
+      {
+        id: 3,
+        metrics: [
+          { key: "northMoney", label: "北向资金（Tushare口径）", format: "plain" },
+          { key: "blockTradeAmount", label: "大宗交易成交额", format: "yi" },
+          { key: "etfShare", label: "ETF份额变化", format: "missing" },
+          { key: "fundPosition", label: "机构仓位", format: "missing" }
+        ],
+        lines: [
+          { key: "northMoney", name: "北向资金" },
+          { key: "blockTradeAmount", name: "大宗交易" }
+        ]
+      },
+      {
+        id: 4,
+        metrics: [
+          { key: "ipoFinancing12m", label: "IPO近12个月融资额", format: "yi" },
+          { key: "refinance", label: "再融资额", format: "missing" },
+          { key: "policyRate", label: "政策利率", format: "missing" },
+          { key: "socialFinancing", label: "社融/M2增速", format: "missing" }
+        ],
+        lines: [
+          { key: "ipoFinancing12m", name: "IPO融资额" }
+        ]
+      }
+    ];
+
+    function periodData(name, years) {
+      return realData?.metrics?.[name]?.periods?.[String(years)] || null;
+    }
+
+    function latestData(name) {
+      return realData?.metrics?.[name]?.latest || {};
+    }
+
+    function makeSeries(name, years, kind) {
+      const period = periodData(name, years);
+      return period?.[kind] || [];
+    }
+
+    function seriesLabels(name, years) {
+      return periodData(name, years)?.labels || [];
+    }
+
+    function selectedKeys() {
+      return state.selections;
+    }
+
+    function isAllSelected() {
+      return Object.keys(industries).every(parent =>
+        state.selections.some(s => s.level === 1 && s.parent === parent)
+      );
+    }
+
+    function syncSelectAllButton() {
+      const button = document.getElementById("selectAllBtn");
+      const active = isAllSelected();
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+      button.title = active ? "再次点击取消全部选择" : "选择全部一级行业";
+    }
+
+    function seriesColor(index) {
+      if (index < colors.length) return colors[index];
+      return `hsl(${(index * 47 + 18) % 360} 48% ${42 + (index % 3) * 7}%)`;
+    }
+
+    function marketCap(name) {
+      return marketCaps[name.replace(/[ⅡⅢ]/g, "")] || 0;
+    }
+
+    function formatMarketCap(value) {
+      if (!value) return "暂无";
+      if (value >= 1e8) return `${(value / 1e8).toFixed(value >= 1e9 ? 1 : 2)}万亿`;
+      return `${Math.round(value / 1e4).toLocaleString("zh-CN")}亿`;
+    }
+
+    function formatProfit(value) {
+      if (!value) return "暂无";
+      if (Math.abs(value) >= 1e8) return `${(value / 1e8).toFixed(2)}万亿`;
+      return `${(value / 1e4).toFixed(1)}亿`;
+    }
+
+    function formatModuleValue(value, format, key) {
+      if (format === "missing") return "暂无真实数据";
+      if (format === "rank") {
+        const rank = marketData?.periods?.[String(state.years)]?.percentiles?.[key];
+        return rank === null || rank === undefined ? "暂无真实数据" : `${rank}%`;
+      }
+      if (value === null || value === undefined || !Number.isFinite(Number(value))) return "暂无真实数据";
+      const number = Number(value);
+      if (format === "x") return `${number.toFixed(2)}x`;
+      if (format === "pct") return `${number.toFixed(2)}%`;
+      if (format === "yi") return `${number.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}亿`;
+      if (format === "count") return `${Math.round(number)}个`;
+      return number.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+    }
+
+    function renderModuleKpis(config) {
+      const latest = marketData?.latest || {};
+      const box = document.getElementById(`moduleKpi${config.id}`);
+      box.innerHTML = config.metrics.map(metric => {
+        const value = formatModuleValue(latest[metric.key], metric.format, metric.key);
+        const note = metric.format === "rank" ? `<span class="module-kpi-note">近${state.years}年</span>` : "";
+        return `<div class="module-kpi"><div class="module-kpi-label">${metric.label}</div><div class="module-kpi-value">${value}${note}</div></div>`;
+      }).join("");
+    }
+
+    function normalizeTo100(values) {
+      const raw = values || [];
+      const base = raw.find(value => Number.isFinite(Number(value)) && Number(value) !== 0);
+      if (base === undefined) return raw.map(() => null);
+      return raw.map(value => Number.isFinite(Number(value)) ? Number((Number(value) / Number(base) * 100).toFixed(2)) : null);
+    }
+
+    function updateModules() {
+      const period = marketData?.periods?.[String(state.years)];
+      moduleConfigs.forEach((config, index) => {
+        renderModuleKpis(config);
+        const legend = document.getElementById(`legend-module${config.id}`);
+        const series = config.lines.map(line => ({
+          name: line.name,
+          values: normalizeTo100(period?.series?.[line.key] || [])
+        }));
+        legend.innerHTML = config.lines.map((line, i) =>
+          `<span class="legend-item" style="--legend:${seriesColor(i)}">${line.name}</span>`
+        ).join("");
+        moduleCharts[index].setData(series, period?.labels || []);
+      });
+    }
+
+    function renderFilters(query = "") {
+      const root = document.getElementById("filterList");
+      root.innerHTML = "";
+      const q = query.trim();
+      Object.entries(industries)
+        .sort(([a], [b]) => marketCap(b) - marketCap(a))
+        .forEach(([parent, children]) => {
+        const sortedChildren = [...children].sort((a, b) => marketCap(b) - marketCap(a));
+        const matchingChildren = sortedChildren.filter(c => !q || c.includes(q));
+        if (q && !parent.includes(q) && !matchingChildren.length) return;
+        const node = document.createElement("div");
+        const hasChildSelected = state.selections.some(s => s.level === 2 && s.parent === parent);
+        const parentSelected = state.selections.some(s => s.level === 1 && s.name === parent);
+        node.className = "sector" + ((q || hasChildSelected || parentSelected) ? " open" : "");
+        node.innerHTML = `
+          <div class="sector-row">
+            <button class="toggle" aria-label="展开">›</button>
+            <input class="check parent-check" type="checkbox" ${parentSelected ? "checked" : ""}>
+            <span class="sector-name">${parent}</span>
+            <span class="child-count">${formatMarketCap(marketCap(parent))}</span>
+          </div>
+          <div class="children">
+            <label class="child child-all">
+              <input class="check all-check" type="checkbox" ${parentSelected ? "checked" : ""}>
+              <span>全部</span>
+              <span class="child-mv">${formatMarketCap(marketCap(parent))}</span>
+            </label>
+            ${matchingChildren.map(child => {
+              const checked = state.selections.some(s => s.level === 2 && s.parent === parent && s.name === child);
+              return `<label class="child"><input class="check child-check" data-child="${child}" type="checkbox" ${checked ? "checked" : ""}><span>${child}</span><span class="child-mv">${formatMarketCap(marketCap(child))}</span></label>`;
+            }).join("")}
+          </div>`;
+        node.querySelector(".toggle").onclick = () => node.classList.toggle("open");
+        node.querySelector(".sector-name").onclick = () => node.classList.toggle("open");
+        const setParentSelection = checked => {
+          state.selections = state.selections.filter(s => !(s.parent === parent && s.level === 1));
+          if (checked) state.selections.push({ level: 1, parent, name: parent });
+          update();
+        };
+        node.querySelector(".parent-check").onchange = e => setParentSelection(e.target.checked);
+        node.querySelector(".all-check").onchange = e => setParentSelection(e.target.checked);
+        node.querySelectorAll(".child-check").forEach(input => input.onchange = e => {
+          const child = e.target.dataset.child;
+          state.selections = state.selections.filter(s => !(s.parent === parent && s.name === child));
+          if (e.target.checked) state.selections.push({ level: 2, parent, name: child });
+          update();
+        });
+        root.appendChild(node);
+      });
+    }
+
+    class LineChart {
+      constructor(canvas, kind) {
+        this.canvas = canvas;
+        this.kind = kind;
+        this.tip = canvas.parentElement.querySelector(".tip");
+        this.data = [];
+        canvas.addEventListener("mousemove", e => this.hover(e));
+        canvas.addEventListener("mouseleave", () => this.tip.style.display = "none");
+      }
+
+      setData(series, labels) {
+        this.data = series;
+        this.labels = labels;
+        this.draw();
+      }
+
+      draw() {
+        const c = this.canvas, rect = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+        c.width = rect.width * dpr; c.height = rect.height * dpr;
+        const x = c.getContext("2d"); x.scale(dpr,dpr);
+        const W = rect.width, H = rect.height, pad = {l:48,r:14,t:12,b:29};
+        const numericSeries = this.data.filter(s => s.values && s.values.some(v => Number.isFinite(v)));
+        if (!numericSeries.length) {
+          x.fillStyle = "#9aa4aa";
+          x.font = "13px Microsoft YaHei";
+          x.textAlign = "center";
+          x.fillText("暂无足够真实数据", W / 2, H / 2);
+          return;
+        }
+        const vals = numericSeries.flatMap(s => s.values).filter(v => Number.isFinite(v));
+        if (!vals.length) return;
+        let lo = Math.min(...vals), hi = Math.max(...vals);
+        const margin = (hi-lo || 1) * .12; lo -= margin; hi += margin;
+        this.geom = {W,H,pad,lo,hi};
+        x.font = "10px Microsoft YaHei"; x.fillStyle = "#89949b"; x.strokeStyle = "#e7ebee"; x.lineWidth = 1;
+        for (let i=0;i<5;i++) {
+          const y = pad.t + (H-pad.t-pad.b)*i/4;
+          x.beginPath(); x.moveTo(pad.l,y); x.lineTo(W-pad.r,y); x.stroke();
+          const value = hi-(hi-lo)*i/4;
+          x.fillText(this.kind === "pe" ? value.toFixed(1)+"x" : value.toFixed(0), 5, y+3);
+        }
+        const tickCount = 5;
+        for (let i=0;i<tickCount;i++) {
+          const idx = Math.round((this.labels.length-1)*i/(tickCount-1));
+          const xx = pad.l+(W-pad.l-pad.r)*idx/Math.max(1, this.labels.length-1);
+          x.fillText(this.labels[idx], Math.max(pad.l, xx-19), H-7);
+        }
+        numericSeries.forEach((s, si) => {
+          x.strokeStyle = seriesColor(si); x.lineWidth = 2; x.lineJoin = "round";
+          x.beginPath();
+          let started = false;
+          s.values.forEach((v,i) => {
+            if (!Number.isFinite(v)) {
+              started = false;
+              return;
+            }
+            const xx = pad.l+(W-pad.l-pad.r)*i/Math.max(1, s.values.length-1);
+            const yy = pad.t+(H-pad.t-pad.b)*(hi-v)/(hi-lo);
+            started ? x.lineTo(xx,yy) : x.moveTo(xx,yy);
+            started = true;
+          });
+          x.stroke();
+        });
+      }
+
+      hover(e) {
+        if (!this.data.length || !this.geom || !this.labels.length) return;
+        const {W,H,pad,lo,hi} = this.geom;
+        const r = this.canvas.getBoundingClientRect();
+        const mx = e.clientX-r.left;
+        if (mx < pad.l || mx > W-pad.r) return this.tip.style.display = "none";
+        const idx = Math.max(0, Math.min(this.labels.length-1,
+          Math.round((mx-pad.l)/(W-pad.l-pad.r)*(this.labels.length-1))));
+        this.tip.innerHTML = `<strong>${this.labels[idx]}</strong>` + this.data.map((s,i) => {
+          const value = s.values[idx];
+          const text = Number.isFinite(value) ? `${value.toFixed(2)}${this.kind==="pe"?"x":""}` : "--";
+          return `<div class="tip-row"><span style="color:${seriesColor(i)}">${s.name}</span><b>${text}</b></div>`;
+        }).join("");
+        this.tip.style.display = "block";
+        const tw = this.tip.offsetWidth;
+        this.tip.style.left = `${Math.min(W-tw-5, Math.max(5,mx+12))}px`;
+        this.tip.style.top = "12px";
+      }
+    }
+
+    function update() {
+      const picks = selectedKeys();
+      const names = picks.map(s => s.level === 2 ? `${s.parent} · ${s.name}` : s.name);
+      const visibleNames = names.slice(0, 4);
+      document.getElementById("scopeText").textContent =
+        names.length
+          ? `当前：${visibleNames.join("、")}${names.length > 4 ? ` 等 ${names.length} 项` : ""}`
+          : "当前：未选择行业";
+      if (!picks.length) {
+        ["price","profit","pe"].forEach((kind, index) => {
+          document.getElementById("legend-" + kind).innerHTML = "";
+          charts[index].setData([], []);
+        });
+        ["mPrice","mReturn","mProfit","mPe"].forEach(id => {
+          document.getElementById(id).innerHTML = '<div class="metric-empty">请选择行业</div>';
+        });
+        renderFilters(document.getElementById("search").value);
+        syncSelectAllButton();
+        updateModules();
+        return;
+      }
+      const all = {};
+      document.getElementById("priceDesc").textContent =
+        "申万真实行情采样点，区间起点归一为 100";
+      ["price","profit","pe"].forEach(kind => {
+        all[kind] = picks.map(s => ({
+          name: s.name,
+          values: makeSeries(s.name, state.years, kind),
+          labels: seriesLabels(s.name, state.years)
+        }));
+        const legend = document.getElementById("legend-"+kind);
+        legend.innerHTML = picks.map((s,i) => `<span class="legend-item" style="--legend:${seriesColor(i)}">${s.name}</span>`).join("");
+      });
+      const labels = all.price.find(s => s.labels.length)?.labels || [];
+      charts[0].setData(all.price, labels);
+      charts[1].setData(all.profit, labels);
+      charts[2].setData(all.pe, labels);
+
+      const metricRows = picks.map((pick, index) => {
+        const latest = latestData(pick.name);
+        const period = periodData(pick.name, state.years);
+        const ret = period?.return;
+        return {
+          name: pick.name,
+          price: latest.close !== null && latest.close !== undefined ? latest.close.toFixed(2) : "暂无",
+          ret: ret !== null && ret !== undefined ? `${ret >= 0 ? "+" : ""}${ret.toFixed(1)}%` : "暂无",
+          retClass: ret === null || ret === undefined ? "" : (ret >= 0 ? "up" : "down"),
+          profit: latest.profit !== null && latest.profit !== undefined ? formatProfit(latest.profit) : "暂无",
+          pe: latest.pe !== null && latest.pe !== undefined
+            ? `${latest.pe.toFixed(1)}x <small>${period?.pePercentile ?? "最新"}${period?.pePercentile !== null && period?.pePercentile !== undefined ? "%" : ""}</small>`
+            : "暂无"
+        };
+      });
+      const renderMetric = (id, valueKey, classKey = "") => {
+        document.getElementById(id).innerHTML = `<div class="metric-list">${metricRows.map(row =>
+          `<div class="metric-row"><span class="metric-name">${row.name}</span><span class="metric-number ${classKey ? row[classKey] : ""}">${row[valueKey]}</span></div>`
+        ).join("")}</div>`;
+      };
+      renderMetric("mPrice", "price");
+      renderMetric("mReturn", "ret", "retClass");
+      renderMetric("mProfit", "profit");
+      renderMetric("mPe", "pe");
+      renderFilters(document.getElementById("search").value);
+      syncSelectAllButton();
+      updateModules();
+    }
+
+    charts.push(new LineChart(document.getElementById("priceChart"), "price"));
+    charts.push(new LineChart(document.getElementById("profitChart"), "profit"));
+    charts.push(new LineChart(document.getElementById("peChart"), "pe"));
+    moduleCharts.push(new LineChart(document.getElementById("moduleChart1"), "module"));
+    moduleCharts.push(new LineChart(document.getElementById("moduleChart2"), "module"));
+    moduleCharts.push(new LineChart(document.getElementById("moduleChart3"), "module"));
+    moduleCharts.push(new LineChart(document.getElementById("moduleChart4"), "module"));
+
+    document.querySelectorAll(".period").forEach(btn => btn.onclick = () => {
+      document.querySelectorAll(".period").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.years = +btn.dataset.years;
+      update();
+    });
+    document.getElementById("search").oninput = e => renderFilters(e.target.value);
+    document.getElementById("selectAllBtn").onclick = () => {
+      state.selections = isAllSelected()
+        ? []
+        : Object.keys(industries)
+            .sort((a, b) => marketCap(b) - marketCap(a))
+            .map(name => ({ level: 1, parent: name, name }));
+      document.getElementById("search").value = "";
+      update();
+    };
+    window.addEventListener("resize", () => [...charts, ...moduleCharts].forEach(c => c.draw()));
+    update();
+  </script>
+</body>
+</html>
