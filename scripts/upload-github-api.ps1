@@ -36,67 +36,55 @@ function Invoke-GitHubJson {
 }
 
 $api = "https://api.github.com/repos/$Owner/$Repo"
-$files = git ls-files
-if (-not $files) {
+$files = @(git ls-files)
+if (-not $files -or $files.Count -eq 0) {
   throw "No tracked files found. Commit or add files before uploading."
+}
+
+function ConvertTo-GitHubPath {
+  param([string]$Path)
+
+  $normalized = $Path -replace "\\", "/"
+  return (($normalized -split "/") | ForEach-Object {
+    [System.Uri]::EscapeDataString($_)
+  }) -join "/"
+}
+
+function Get-RemoteFileSha {
+  param([string]$Path)
+
+  $escapedPath = ConvertTo-GitHubPath $Path
+  try {
+    $remote = Invoke-GitHubJson -Method "Get" -Uri "$api/contents/$escapedPath`?ref=$Branch"
+    return $remote.sha
+  } catch {
+    return $null
+  }
 }
 
 Write-Host "Uploading $($files.Count) tracked files to $Owner/$Repo ($Branch) ..."
 
-$treeItems = @()
+$uploaded = 0
 foreach ($file in $files) {
   $bytes = [System.IO.File]::ReadAllBytes((Join-Path $repoRoot $file))
   $content = [Convert]::ToBase64String($bytes)
-  $blob = Invoke-GitHubJson -Method "Post" -Uri "$api/git/blobs" -Body @{
+  $escapedPath = ConvertTo-GitHubPath $file
+  $sha = Get-RemoteFileSha $file
+
+  $body = @{
+    message = "$Message`: $file"
     content = $content
-    encoding = "base64"
+    branch = $Branch
+  }
+  if ($sha) {
+    $body.sha = $sha
   }
 
-  $treeItems += @{
-    path = ($file -replace "\\", "/")
-    mode = "100644"
-    type = "blob"
-    sha = $blob.sha
-  }
-
-  Write-Host "  prepared $file"
-}
-
-$currentCommitSha = $null
-try {
-  $ref = Invoke-GitHubJson -Method "Get" -Uri "$api/git/ref/heads/$Branch"
-  $currentCommitSha = $ref.object.sha
-  Write-Host "Found existing $Branch at $currentCommitSha"
-} catch {
-  Write-Host "No existing $Branch ref found; creating first commit."
-}
-
-$tree = Invoke-GitHubJson -Method "Post" -Uri "$api/git/trees" -Body @{
-  tree = $treeItems
-}
-
-$commitBody = @{
-  message = $Message
-  tree = $tree.sha
-}
-if ($currentCommitSha) {
-  $commitBody.parents = @($currentCommitSha)
-}
-
-$commit = Invoke-GitHubJson -Method "Post" -Uri "$api/git/commits" -Body $commitBody
-
-if ($currentCommitSha) {
-  Invoke-GitHubJson -Method "Patch" -Uri "$api/git/refs/heads/$Branch" -Body @{
-    sha = $commit.sha
-    force = $false
-  } | Out-Null
-} else {
-  Invoke-GitHubJson -Method "Post" -Uri "$api/git/refs" -Body @{
-    ref = "refs/heads/$Branch"
-    sha = $commit.sha
-  } | Out-Null
+  Invoke-GitHubJson -Method "Put" -Uri "$api/contents/$escapedPath" -Body $body | Out-Null
+  $uploaded += 1
+  Write-Host "  uploaded $file"
 }
 
 Write-Host "Uploaded successfully:"
 Write-Host "  https://github.com/$Owner/$Repo/tree/$Branch"
-Write-Host "  commit $($commit.sha)"
+Write-Host "  files $uploaded"
