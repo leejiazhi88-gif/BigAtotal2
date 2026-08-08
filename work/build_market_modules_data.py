@@ -11,14 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT_JSON = ROOT / "outputs" / "market_modules_data.json"
 OUTPUT_JS = ROOT / "outputs" / "market_modules_data.js"
-END_DATE = "20260618"
-PERIOD_STARTS = {
-    "1": "20250618",
-    "3": "20230619",
-    "5": "20210618",
-    "10": "20160620",
-    "20": "20060619",
-}
+PERIOD_YEARS = ("1", "3", "5", "10", "20")
 
 
 def get_token():
@@ -48,6 +41,34 @@ def call_api(token, api_name, params=None, fields=""):
     return [dict(zip(data["fields"], row)) for row in data["items"]]
 
 
+def ymd(date_text):
+    return datetime.strptime(date_text, "%Y%m%d")
+
+
+def shift_years(date_text, years):
+    date = ymd(date_text)
+    try:
+        shifted = date.replace(year=date.year - years)
+    except ValueError:
+        shifted = date.replace(year=date.year - years, day=28)
+    return shifted.strftime("%Y%m%d")
+
+
+def latest_daily_basic_date(token):
+    today = datetime.now().strftime("%Y%m%d")
+    rows = call_api(
+        token,
+        "trade_cal",
+        {"exchange": "SSE", "start_date": shift_years(today, 1), "end_date": today, "is_open": "1"},
+        "cal_date",
+    )
+    for date in sorted((row["cal_date"] for row in rows), reverse=True):
+        probe = call_api(token, "daily_basic", {"trade_date": date}, "ts_code")
+        if probe:
+            return date
+    raise RuntimeError("No recent daily_basic rows found.")
+
+
 def finite(value):
     try:
         value = float(value)
@@ -73,11 +94,11 @@ def pct(values, predicate):
     return sum(1 for v in values if predicate(v)) / len(values) * 100
 
 
-def sample_dates(token):
+def sample_dates(token, end_date, period_starts):
     rows = call_api(
         token,
         "trade_cal",
-        {"exchange": "SSE", "start_date": PERIOD_STARTS["20"], "end_date": END_DATE, "is_open": "1"},
+        {"exchange": "SSE", "start_date": period_starts["20"], "end_date": end_date, "is_open": "1"},
         "cal_date",
     )
     open_dates = sorted(row["cal_date"] for row in rows)
@@ -94,15 +115,15 @@ def sample_dates(token):
         return [dates[round(i * last / (max_points - 1))] for i in range(max_points)]
 
     by_period = {
-        "1": pick(PERIOD_STARTS["1"], 13),
-        "3": pick(PERIOD_STARTS["3"], 25),
-        "5": pick(PERIOD_STARTS["5"], 31),
-        "10": pick(PERIOD_STARTS["10"], 49),
-        "20": pick(PERIOD_STARTS["20"], 72),
+        "1": pick(period_starts["1"], 13),
+        "3": pick(period_starts["3"], 25),
+        "5": pick(period_starts["5"], 31),
+        "10": pick(period_starts["10"], 49),
+        "20": pick(period_starts["20"], 72),
     }
     union = sorted({date for dates in by_period.values() for date in dates})
-    if END_DATE not in union:
-        union.append(END_DATE)
+    if end_date not in union:
+        union.append(end_date)
         union.sort()
     return by_period, union
 
@@ -164,8 +185,8 @@ def labels(rows):
     return [f'{row["date"][:4]}-{row["date"][4:6]}' for row in rows]
 
 
-def trailing_ipo(token, dates):
-    all_rows = call_api(token, "new_share", {"start_date": PERIOD_STARTS["20"], "end_date": END_DATE}, "ts_code,name,ipo_date,amount,price")
+def trailing_ipo(token, dates, period_starts, end_date):
+    all_rows = call_api(token, "new_share", {"start_date": period_starts["20"], "end_date": end_date}, "ts_code,name,ipo_date,amount,price")
     ipo_by_date = {}
     for row in all_rows:
         date = row.get("ipo_date")
@@ -182,8 +203,8 @@ def trailing_ipo(token, dates):
     return output
 
 
-def hsgt_series(token, dates):
-    rows = call_api(token, "moneyflow_hsgt", {"start_date": PERIOD_STARTS["5"], "end_date": END_DATE}, "trade_date,north_money,south_money")
+def hsgt_series(token, dates, period_starts, end_date):
+    rows = call_api(token, "moneyflow_hsgt", {"start_date": period_starts["5"], "end_date": end_date}, "trade_date,north_money,south_money")
     by_date = {row["trade_date"]: finite(row.get("north_money")) for row in rows}
     available = sorted(by_date)
     output = {}
@@ -195,15 +216,18 @@ def hsgt_series(token, dates):
 
 def main():
     token = get_token()
-    by_period, dates = sample_dates(token)
+    end_date = latest_daily_basic_date(token)
+    period_starts = {years: shift_years(end_date, int(years)) for years in PERIOD_YEARS}
+    print(f"latest market date: {end_date}", flush=True)
+    by_period, dates = sample_dates(token, end_date, period_starts)
     metrics_by_date = {}
     for idx, date in enumerate(dates, 1):
         print(f"[{idx}/{len(dates)}] {date}", flush=True)
         metrics_by_date[date] = row_metrics(token, date)
         time.sleep(0.05)
 
-    ipo = trailing_ipo(token, dates)
-    north = hsgt_series(token, dates)
+    ipo = trailing_ipo(token, dates, period_starts, end_date)
+    north = hsgt_series(token, dates, period_starts, end_date)
     for date in dates:
         metrics_by_date[date]["ipoFinancing12m"] = ipo.get(date)
         metrics_by_date[date]["northMoney"] = north.get(date)
@@ -244,17 +268,18 @@ def main():
             },
         }
 
-    latest = metrics_by_date[END_DATE]
+    latest = metrics_by_date[end_date]
     payload = {
         "source": "Tushare daily_basic / daily / margin / moneyflow_hsgt / block_trade / new_share",
-        "asOf": END_DATE,
+        "asOf": end_date,
+        "periodStarts": period_starts,
         "generatedAt": datetime.now().isoformat(timespec="seconds"),
         "latest": latest,
         "periods": periods,
     }
     OUTPUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     OUTPUT_JS.write_text("window.MARKET_MODULES_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
-    print(json.dumps({"output": str(OUTPUT_JSON), "dates": len(dates), "asOf": END_DATE}, ensure_ascii=False))
+    print(json.dumps({"output": str(OUTPUT_JSON), "dates": len(dates), "asOf": end_date}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

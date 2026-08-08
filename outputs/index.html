@@ -480,7 +480,7 @@
         <h1>申万赛道研究总览</h1>
         <p class="subtitle">从指数价格、滚动利润与估值三个维度观察行业周期。一级行业代表行业全貌，展开后可进一步聚焦具体二级赛道。</p>
       </div>
-      <div class="asof">数据状态<strong>全页真实行情数据</strong>申万/市场：2026-06-18</div>
+      <div class="asof">数据状态<strong>全页真实行情数据</strong><span id="dataAsOf">申万/市场：读取中</span></div>
     </header>
 
     <div class="workspace">
@@ -612,11 +612,13 @@
     </div>
   </div>
 
-  <script src="sector_real_data.js"></script>
-  <script src="market_modules_data.js"></script>
+  <script src="sector_real_data.js?v=20260807"></script>
+  <script src="market_modules_data.js?v=20260807"></script>
   <script>
     const realData = window.SECTOR_REAL_DATA || null;
     const marketData = window.MARKET_MODULES_DATA || null;
+    const formatAsOf = value => value && value.length === 8 ? `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}` : value;
+    document.getElementById("dataAsOf").textContent = `申万/市场：${formatAsOf(realData?.asOf) || "-"} / ${formatAsOf(marketData?.asOf) || "-"}`;
     let industries = realData?.industries || {
       "农林牧渔": ["养殖业","饲料","种植业","渔业","动物保健","农产品加工"],
       "基础化工": ["化学原料","化学制品","农化制品","塑料","橡胶","化学纤维"],
@@ -950,7 +952,7 @@
         const c = this.canvas, rect = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
         c.width = rect.width * dpr; c.height = rect.height * dpr;
         const x = c.getContext("2d"); x.scale(dpr,dpr);
-        const W = rect.width, H = rect.height, pad = {l:48,r:14,t:12,b:29};
+        const W = rect.width, H = rect.height, pad = {l:48,r:42,t:12,b:38};
         const numericSeries = this.data.filter(s => s.values && s.values.some(v => Number.isFinite(v)));
         if (!numericSeries.length) {
           x.fillStyle = "#9aa4aa";
@@ -965,6 +967,7 @@
         const margin = (hi-lo || 1) * .12; lo -= margin; hi += margin;
         this.geom = {W,H,pad,lo,hi};
         x.font = "10px Microsoft YaHei"; x.fillStyle = "#89949b"; x.strokeStyle = "#e7ebee"; x.lineWidth = 1;
+        x.textAlign = "left";
         for (let i=0;i<5;i++) {
           const y = pad.t + (H-pad.t-pad.b)*i/4;
           x.beginPath(); x.moveTo(pad.l,y); x.lineTo(W-pad.r,y); x.stroke();
@@ -972,10 +975,13 @@
           x.fillText(this.kind === "pe" ? value.toFixed(1)+"x" : value.toFixed(0), 5, y+3);
         }
         const tickCount = 5;
+        x.textAlign = "center";
         for (let i=0;i<tickCount;i++) {
           const idx = Math.round((this.labels.length-1)*i/(tickCount-1));
           const xx = pad.l+(W-pad.l-pad.r)*idx/Math.max(1, this.labels.length-1);
-          x.fillText(this.labels[idx], Math.max(pad.l, xx-19), H-7);
+          const label = this.labels[idx] || "";
+          const half = x.measureText(label).width / 2;
+          x.fillText(label, Math.max(pad.l + half, Math.min(W - half - 2, xx)), H-12);
         }
         numericSeries.forEach((s, si) => {
           x.strokeStyle = seriesColor(si); x.lineWidth = 2; x.lineJoin = "round";

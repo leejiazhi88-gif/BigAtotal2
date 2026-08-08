@@ -10,15 +10,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "outputs" / "sector_real_data.json"
+OUTPUT_JS = ROOT / "outputs" / "sector_real_data.js"
 START_DATE = "20060101"
-END_DATE = "20260618"
-PERIODS = {
-    "1": "20250618",
-    "3": "20230619",
-    "5": "20210618",
-    "10": "20160620",
-    "20": "20060619",
-}
+PERIOD_YEARS = ("1", "3", "5", "10", "20")
 
 
 def get_token():
@@ -46,6 +40,31 @@ def call_api(token, api_name, params, fields):
         raise RuntimeError(f"{api_name}: {result.get('msg')}")
     data = result["data"]
     return [dict(zip(data["fields"], row)) for row in data["items"]]
+
+
+def shift_years(date_text, years):
+    date = ymd(date_text)
+    try:
+        shifted = date.replace(year=date.year - years)
+    except ValueError:
+        shifted = date.replace(year=date.year - years, day=28)
+    return shifted.strftime("%Y%m%d")
+
+
+def latest_sw_date(token):
+    today = datetime.now().strftime("%Y%m%d")
+    # Use a liquid SW level-1 index as the availability probe; SW index data can lag
+    # the exchange calendar, so the latest open day is not always enough.
+    rows = call_api(
+        token,
+        "sw_daily",
+        {"ts_code": "801080.SI", "start_date": shift_years(today, 1), "end_date": today},
+        "trade_date,close",
+    )
+    dates = sorted(row["trade_date"] for row in rows if row.get("trade_date") and row.get("close"))
+    if not dates:
+        raise RuntimeError("No recent SW daily rows found.")
+    return dates[-1]
 
 
 def clean_name(name):
@@ -123,8 +142,8 @@ def build_history(rows):
     latest = rows[-1] if rows else {}
     periods = {}
     max_points = {"1": 64, "3": 72, "5": 72, "10": 84, "20": 96}
-    for years, start in PERIODS.items():
-        sample = sample_rows(rows, start, max_points[years])
+    for years in PERIOD_YEARS:
+        sample = sample_rows(rows, shift_years(END_DATE, int(years)), max_points[years])
         if not sample:
             periods[years] = None
             continue
@@ -162,6 +181,10 @@ def build_history(rows):
 
 def main():
     token = get_token()
+    global END_DATE
+    END_DATE = latest_sw_date(token)
+    periods = {years: shift_years(END_DATE, int(years)) for years in PERIOD_YEARS}
+    print(f"latest SW date: {END_DATE}", flush=True)
     l1_rows = call_api(token, "index_classify", {"src": "SW2021", "level": "L1"}, "index_code,industry_name,parent_code,level,industry_code")
     l2_rows = call_api(token, "index_classify", {"src": "SW2021", "level": "L2"}, "index_code,industry_name,parent_code,level")
 
@@ -212,6 +235,7 @@ def main():
     payload = {
         "source": "Tushare sw_daily / index_classify, SW2021",
         "asOf": END_DATE,
+        "periodStarts": periods,
         "generatedAt": datetime.now().isoformat(timespec="seconds"),
         "industries": sorted_industries,
         "codes": code_by_name,
@@ -219,6 +243,7 @@ def main():
         "metrics": metrics,
     }
     OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    OUTPUT_JS.write_text("window.SECTOR_REAL_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
     print(f"wrote {OUTPUT}")
 
 
