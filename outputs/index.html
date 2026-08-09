@@ -952,7 +952,7 @@
         const c = this.canvas, rect = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
         c.width = rect.width * dpr; c.height = rect.height * dpr;
         const x = c.getContext("2d"); x.scale(dpr,dpr);
-        const W = rect.width, H = rect.height, pad = {l:48,r:42,t:12,b:38};
+        const W = rect.width, H = rect.height, pad = {l:48,r:64,t:12,b:40};
         const numericSeries = this.data.filter(s => s.values && s.values.some(v => Number.isFinite(v)));
         if (!numericSeries.length) {
           x.fillStyle = "#9aa4aa";
@@ -980,8 +980,8 @@
           const idx = Math.round((this.labels.length-1)*i/(tickCount-1));
           const xx = pad.l+(W-pad.l-pad.r)*idx/Math.max(1, this.labels.length-1);
           const label = this.labels[idx] || "";
-          const half = x.measureText(label).width / 2;
-          x.fillText(label, Math.max(pad.l + half, Math.min(W - half - 2, xx)), H-12);
+          x.textAlign = i === 0 ? "left" : (i === tickCount - 1 ? "right" : "center");
+          x.fillText(label, i === 0 ? pad.l : (i === tickCount - 1 ? W - 6 : xx), H-12);
         }
         numericSeries.forEach((s, si) => {
           x.strokeStyle = seriesColor(si); x.lineWidth = 2; x.lineJoin = "round";
