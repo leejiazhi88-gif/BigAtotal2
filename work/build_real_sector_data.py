@@ -1,6 +1,7 @@
 import json
 import math
 import re
+import ssl
 import time
 import urllib.request
 from datetime import datetime
@@ -17,13 +18,51 @@ PERIOD_YEARS = ("1", "3", "5", "10", "20")
 
 def get_token():
     text = CONFIG.read_text(encoding="utf-8")
-    match = re.search(r"https://api\.tushare\.pro/mcp/\?token=([^\"&\s]+)", text)
+    match = re.search(r"https://api\.tushare\.pro/mcp/\?token=([^'\"&\s]+)", text)
     if not match:
         raise RuntimeError("Tushare token was not found in the local Codex config.")
-    return match.group(1)
+    return match.group(0)
+
+
+def parse_sse_json(text):
+    for line in text.splitlines():
+        if line.startswith("data: "):
+            return json.loads(line[6:])
+    raise RuntimeError(f"MCP response did not contain JSON data: {text[:200]}")
+
+
+def call_mcp(endpoint, api_name, params, fields):
+    arguments = dict(params or {})
+    if fields:
+        arguments["fields"] = [field.strip() for field in fields.split(",") if field.strip()]
+    payload = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": api_name, "arguments": arguments}},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        endpoint,
+        data=payload,
+        headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60, context=ssl._create_unverified_context()) as response:
+        result = parse_sse_json(response.read().decode("utf-8"))
+    if "error" in result:
+        raise RuntimeError(f"{api_name}: {result['error']}")
+    tool_result = result.get("result", {})
+    if tool_result.get("isError"):
+        content = tool_result.get("content") or []
+        message = content[0].get("text") if content else "unknown MCP error"
+        raise RuntimeError(f"{api_name}: {message}")
+    content = tool_result.get("content") or []
+    if not content:
+        return []
+    return json.loads(content[0].get("text") or "[]")
 
 
 def call_api(token, api_name, params, fields):
+    if token.startswith("https://api.tushare.pro/mcp/"):
+        return call_mcp(token, api_name, params, fields)
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields},
         ensure_ascii=False,
